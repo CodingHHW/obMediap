@@ -1,0 +1,6 @@
+numpy<2
+opencv-python
+matplotlib
+sounddevice
+mediapipe
+pyrealsense2
