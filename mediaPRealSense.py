@@ -106,6 +106,23 @@ def run(args: argparse.Namespace) -> int:
 
 					draw_2d_overlay(color, pixels, handedness=handed, fps=None)
 
+					# 手势中心点（2D/3D）显示
+					valid_mask = np.isfinite(xyz).all(axis=1)
+					if valid_mask.any():
+						center_xyz = xyz[valid_mask].mean(axis=0)
+						center_px = pixels.mean(axis=0)
+						cx, cy = int(center_px[0]), int(center_px[1])
+						cv2.circle(color, (cx, cy), 5, (0, 255, 255), -1)
+						cv2.putText(
+							color,
+							f"({center_xyz[0]:.3f}, {center_xyz[1]:.3f}, {center_xyz[2]:.3f}) m",
+							(cx + 8, cy - 8),
+							cv2.FONT_HERSHEY_SIMPLEX,
+							0.5,
+							(0, 255, 255),
+							2,
+						)
+
 			# FPS
 			now = time.time()
 			dt = max(1e-6, now - last_t)
