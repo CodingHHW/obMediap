@@ -24,7 +24,9 @@ except Exception as e:
 	raise RuntimeError("请先安装 pyrealsense2 / librealsense") from e
 
 from hand_utils import (
+	Hand3D,
 	HandDetector,
+	LiveHand3DPlot,
 	draw_2d_overlay,
 	landmarks_to_pixels,
 	pixels_to_3d_with_deproject,
@@ -47,6 +49,8 @@ def run(args: argparse.Namespace) -> int:
 		min_det_conf=args.min_det_conf,
 		min_track_conf=args.min_track_conf,
 	)
+
+	plot3d = LiveHand3DPlot(max_hands=args.max_hands) if args.enable_3d else None
 
 	fps_ema: Optional[float] = None
 	last_t = time.time()
@@ -72,6 +76,7 @@ def run(args: argparse.Namespace) -> int:
 			# 对齐后使用彩色相机内参（aligned depth 已在彩色坐标系）
 			intr = color_frame.profile.as_video_stream_profile().intrinsics
 
+			hands3d = []
 			if results and results.hand_landmarks:
 				for idx, hand_lms in enumerate(results.hand_landmarks):
 					pixels = landmarks_to_pixels(hand_lms, w, h)
@@ -101,6 +106,11 @@ def run(args: argparse.Namespace) -> int:
 							2,
 						)
 
+					hands3d.append(Hand3D(world_xyz=xyz, handedness="Hand"))
+
+			if plot3d is not None:
+				plot3d.update(hands3d)
+
 			# FPS 显示
 			now = time.time()
 			dt = max(1e-6, now - last_t)
@@ -125,6 +135,8 @@ def run(args: argparse.Namespace) -> int:
 	finally:
 		pipeline.stop()
 		cv2.destroyAllWindows()
+		if plot3d is not None:
+			plot3d.close()
 	print("Stopped.")
 	return 0
 
@@ -138,6 +150,7 @@ def build_argparser() -> argparse.ArgumentParser:
 	p.add_argument("--min-det-conf", type=float, default=0.5)
 	p.add_argument("--min-track-conf", type=float, default=0.5)
 	p.add_argument("--depth-radius", type=int, default=2, help="深度邻域半径（像素），用于缺测插值")
+	p.add_argument("--enable-3d", action="store_true", help="开启 Matplotlib 3D 骨架可视化")
 	return p
 
 
